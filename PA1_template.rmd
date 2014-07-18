@@ -1,0 +1,77 @@
+Loading and preprocessing the data
+
+```{r}
+activity <- read.csv("./activity.csv")
+activity$date <- as.Date(activity$date)
+head(activity)
+summary(activity)
+```
+
+What is mean total number of steps taken per day?
+
+Histogram
+```{r}
+library(ggplot2)
+stepsPlot<-qplot(date, weight=activity$steps, data=activity, geom="histogram")
+print(stepsPlot)
+```
+
+Mean and Median
+```{r}
+mean(tapply(activity$steps, activity$date, sum, na.rm = TRUE))
+median(tapply(activity$steps, activity$date, sum, na.rm = TRUE))
+```
+
+What is the average daily activity pattern?
+
+Average Number of Steps Plot 
+```{r}
+average_steps<-data.frame(cbind(activity$interval,tapply(activity$steps, activity$interval, mean, na.rm = TRUE)))
+colnames(average_steps) <- c("interval","steps")
+averageStepsPlot<-ggplot(data=average_steps,aes(x=interval,y=steps)) +
+  geom_line()
+print(averageStepsPlot)
+```
+
+Maximum Steps
+```{r}
+maxtime<-average_steps[which.max(average_steps$steps),"interval"]
+strftime( as.POSIXct(Sys.Date()) + as.difftime(round(maxtime/100), units="hours")+ as.difftime(maxtime%%100, units="mins"), "%r",tz="UTC") 
+```
+
+Imputing missing values
+
+Missing Values
+```{r}
+sum(is.na(activity$steps))
+```
+
+Fixing Missing Values
+```{r}
+fixed<-activity
+fixed[is.na(fixed[, 1]), 1]<-average_steps[is.na(fixed[, 1]),2]
+```
+
+Histogram
+```{r}
+qplot(date, weight=fixed$steps, data=fixed, geom="histogram")
+```
+
+Mean and Median
+```{r}
+mean(tapply(fixed$steps, fixed$date, sum, na.rm = TRUE))
+median(tapply(fixed$steps, fixed$date, sum, na.rm = TRUE))
+```
+
+Are there differences in activity patterns between weekdays and weekends?
+
+Weekday and Weekend
+```{r}
+library(lattice)
+fixed$day<-as.factor(ifelse(weekdays(fixed$date) %in% c("Saturday","Sunday"),"Weekend","Weekday"))
+```
+
+Average step for Weekday/Weekend Plot
+```{r}
+xyplot(steps ~ interval | day, aggregate(steps ~ interval + day, fixed, FUN = mean), layout = c(1, 2), type = "l", group=day)
+```
